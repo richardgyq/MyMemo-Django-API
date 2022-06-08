@@ -1,9 +1,3 @@
-from django.db import IntegrityError
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
-from django.http import JsonResponse
-from rest_framework.parsers import JSONParser
-from rest_framework.authtoken.models import Token
 from rest_framework import generics, permissions
 from .serializers import MyMemoSerializer, MyMemoToggleFavouriteSerializer
 from mymemo.models import MyMemo
@@ -41,44 +35,3 @@ class MyMemoToggleFavourite(generics.UpdateAPIView):
     def perform_update(self, serializer):
         serializer.instance.favourite = not(serializer.instance.favourite)
         serializer.save()
-
-class UserSignup(generics.GenericAPIView):
-    permission_classes = []
-    authentication_classes = []
-
-    def post(self, request, *args, **kwargs):
-        try:
-            data = JSONParser().parse(request)
-            user = User.objects.create_user(
-                username=data['username'],
-                password=data['password']
-            )
-
-            token = Token.objects.create(user=user)
-            return JsonResponse({'token': str(token)}, status=201)
-        except IntegrityError:
-            return JsonResponse(
-                {'error': 'username taken. Choose another username'},
-                status=400
-            )
-
-
-class UserLogin(generics.GenericAPIView):
-    permission_classes = []
-    authentication_classes = []
-
-    def post(self, request, *args, **kwargs):
-        data = JSONParser().parse(request)
-        user = authenticate(
-            request, username=data['username'], password=data['password']
-        )
-        if user is None:
-            return JsonResponse(
-                {'error': 'Invalid username or password!'},
-                status=401
-            )
-        try:
-            token = Token.objects.get(user=user)
-        except:
-            token = Token.objects.create(user=user)
-        return JsonResponse({'token': str(token)}, status=200)
